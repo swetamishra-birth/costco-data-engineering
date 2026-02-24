@@ -1,4 +1,4 @@
-name: Test CI
+name: Deploy to BigQuery
 
 on:
   push:
@@ -6,9 +6,25 @@ on:
       - main
 
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Run Bash Command
-        run: echo "CI is working successfully"
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Set Project
+        run: gcloud config set project costco-project-488314
+
+      - name: Deploy Silver Layer
+        run: |
+          bq query --use_legacy_sql=false < sql/silver/sales_cleaned.sql
+
