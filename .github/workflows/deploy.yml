@@ -24,7 +24,26 @@ jobs:
       - name: Set Project
         run: gcloud config set project costco-project-488314
 
+      # ---- Deploy Silver ----
       - name: Deploy Silver Layer
         run: |
           bq query --use_legacy_sql=false < sql/silver/sales_cleaned.sql
+
+      # ---- Data Quality Test ----
+      - name: Check for Null Sales
+        run: |
+          NULL_COUNT=$(bq query --use_legacy_sql=false --format=csv \
+          "SELECT COUNT(*) FROM costco_silver.sales_cleaned WHERE Sales IS NULL" | tail -n 1)
+
+          echo "Null Count: $NULL_COUNT"
+
+          if [ "$NULL_COUNT" -gt 0 ]; then
+            echo "Data Quality Check Failed!"
+            exit 1
+          fi
+
+      # ---- Deploy Gold ----
+      - name: Deploy Gold Layer
+        run: |
+          bq query --use_legacy_sql=false < sql/gold/sales_summary.sql
 
